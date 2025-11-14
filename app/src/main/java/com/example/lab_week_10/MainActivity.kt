@@ -3,12 +3,15 @@ package com.example.lab_week_10
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.room.Room
 import com.example.lab_week_10.database.Total
 import com.example.lab_week_10.database.TotalDatabase
+import com.example.lab_week_10.database.TotalObject
 import com.example.lab_week_10.viewmodels.TotalViewModel
+import java.util.Date
 
 class MainActivity : AppCompatActivity() {
     // Create an instance of the TotalDatabase
@@ -31,9 +34,22 @@ class MainActivity : AppCompatActivity() {
         prepareViewModel()
     }
 
-    private fun updateText(total: Int) {
+    override fun onStart() {
+        super.onStart()
+        // Show toast with the last update date when app starts
+        val total = db.totalDao().getTotal(ID)
+        if (total.isNotEmpty() && total.first().total.date.isNotEmpty()) {
+            Toast.makeText(
+                this,
+                "Last Update: ${total.first().total.date}",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    private fun updateText(totalObject: TotalObject) {
         findViewById<TextView>(R.id.text_total).text =
-            getString(R.string.text_total, total)
+            getString(R.string.text_total, totalObject.value)
     }
 
     private fun prepareViewModel(){
@@ -52,11 +68,14 @@ class MainActivity : AppCompatActivity() {
     // Create and build the TotalDatabase with the name 'total-database'
     // allowMainThreadQueries() is used to allow queries to be run on the main thread
     // This is not recommended, but for simplicity it's used here
+    // fallbackToDestructiveMigration() is used to handle schema changes
     private fun prepareDatabase(): TotalDatabase {
         return Room.databaseBuilder(
             applicationContext,
             TotalDatabase::class.java, "total-database"
-        ).allowMainThreadQueries().build()
+        ).allowMainThreadQueries()
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     // Initialize the value of the total from the database
@@ -65,7 +84,7 @@ class MainActivity : AppCompatActivity() {
     private fun initializeValueFromDatabase() {
         val total = db.totalDao().getTotal(ID)
         if (total.isEmpty()) {
-            db.totalDao().insert(Total(id = 1, total = 0))
+            db.totalDao().insert(Total(id = 1, total = TotalObject(0, "")))
         } else {
             viewModel.setTotal(total.first().total)
         }
@@ -77,7 +96,9 @@ class MainActivity : AppCompatActivity() {
     // even if the app is closed
     override fun onPause() {
         super.onPause()
-        db.totalDao().update(Total(ID, viewModel.total.value!!))
+        val currentTotal = viewModel.total.value ?: TotalObject(0, "")
+        val updatedTotal = TotalObject(currentTotal.value, Date().toString())
+        db.totalDao().update(Total(ID, updatedTotal))
     }
 
     // The ID of the Total object in the database

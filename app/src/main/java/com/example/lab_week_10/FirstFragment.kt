@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.lifecycle.ViewModelProvider
+import com.example.lab_week_10.database.TotalObject
 import com.example.lab_week_10.viewmodels.TotalViewModel
 
 class FirstFragment : Fragment() {
@@ -27,9 +28,9 @@ class FirstFragment : Fragment() {
         prepareViewModel()
     }
 
-    private fun updateText(total: Int) {
+    private fun updateText(totalObject: TotalObject) {
         view?.findViewById<TextView>(R.id.text_total)?.text =
-            getString(R.string.text_total, total)
+            getString(R.string.text_total, totalObject.value)
     }
 
     private fun prepareViewModel(){
